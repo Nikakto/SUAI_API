@@ -1,6 +1,114 @@
 from collections import UserList
 
+import math
+import operator
 from Lab_1.const import NUCLEOTIDES
+
+
+def hirschberg(dna_0, dna_1, ins_=1, del_=1, sub_=1):
+
+    Z = ""
+    W = ""
+
+    if len(dna_0) == 0:
+        for i in range(len(dna_1)):
+            Z += '-'
+            W += dna_1[i]
+
+    elif len(dna_1) == 0:
+        for i in range(len(dna_0)):
+            Z += dna_0[i]
+            W += '-'
+
+    elif len(dna_0) == 1 or len(dna_1) == 1:
+
+        matrix = TransformationMatrix(dna_0, dna_1)
+        matrix.balance_top_down(gap=ins_)
+        aligment = matrix.get_aligment()
+
+        dna_cursor = [0, 0]
+        for c in aligment:
+
+            if c == 'M' or c == 'R':
+
+                Z += dna_0[dna_cursor[0]]
+                dna_cursor[0] += 1
+
+                W += dna_1[dna_cursor[1]]
+                dna_cursor[1] += 1
+
+            elif c == 'I':
+
+                Z += dna_0[dna_cursor[0]]
+                dna_cursor[0] += 1
+
+                W += '-'
+
+            elif c == 'D':
+
+                Z += '-'
+
+                W += dna_1[dna_cursor[1]]
+                dna_cursor[1] += 1
+
+    else:
+
+        xmid = math.floor( len(dna_0) / 2)
+
+        ScoreL = nwscore(dna_1, dna_0[:xmid], ins_=ins_, del_=del_, sub_=sub_)
+        ScoreR = nwscore(dna_1[::-1], dna_0[xmid:][::-1], ins_=ins_, del_=del_, sub_=sub_)
+
+        scores = list(map(operator.add, ScoreL, ScoreR[::-1]))
+        ymid = scores.index(min(scores))
+
+        left = hirschberg(dna_0[:xmid], dna_1[:ymid])
+        right = hirschberg(dna_0[xmid:], dna_1[ymid:])
+        Z = left[0] + right[0]
+        W = left[1] + right[1]
+
+    return Z, W
+
+
+def nwscore(dna_0, dna_1, ins_=1, del_=1, sub_=1):
+
+    score = [[0] * (len(dna_0) + 1) for i in range(2)]
+
+    for i in range(0, len(dna_1)):
+
+        if i == 0:
+            for j in range(1, len(dna_0) + 1):
+                score[0][j] = score[0][j - 1] + ins_  # insert
+        else:
+            score[0] = score[1]
+            score[1] = [0] * (len(dna_0) + 1)
+
+        score[1][0] = score[0][0] + del_  # delete
+        for j in range(1, len(dna_0) + 1):
+
+            scoreDel = score[0][j] + del_
+            scoreIns = score[1][j - 1] + ins_
+            scoreSub = score[0][j - 1] + sub_ if dna_1[i] != dna_0[j-1] else score[0][j - 1]
+
+            score[1][j] = min(scoreSub, scoreDel, scoreIns)
+
+        # if i == 0:
+        #     print('%s to %s' % (dna_1, dna_0))
+        #     print(' '*11, end='')
+        #     for c in dna_0:
+        #         print('%-5s' % c, end='')
+        #     print('\n')
+        #
+        #     print(' ' * 6, end='')
+        #     for c in score[0]:
+        #         print('%-5s' % c, end='')
+        #     print('\n')
+        #
+        # print('%-6s' % dna_1[i], end='')
+        # for c in score[1]:
+        #     print('%-5s' % c, end='')
+        # print('\n')
+
+    return score[1]
 
 
 class TransformationMatrix(UserList):
@@ -215,6 +323,7 @@ class TransformationMatrix(UserList):
             return [(row, column)]
         else:
             return [(row, column)] + self.get_path(previous[0], previous[1], maximum)
+
 
     def print_aligment(self, maximum=False):
 
