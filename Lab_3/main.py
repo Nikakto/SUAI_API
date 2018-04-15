@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
     graph = nx.DiGraph()
     for animal in animals:
-        graph.add_node(animal, animals=[animal, ])
+        graph.add_node(animal, animals=[animal, ], edge_weight_before=0)
 
     _print_matrix(matrix)
     while matrix.shape[0] > 1:
@@ -102,12 +102,17 @@ if __name__ == '__main__':
         index_0, index_1 = np.unravel_index(matrix.argmin(), matrix.shape)
 
         node_name = animals[index_0] + '__' + animals[index_1]
-        node_animals = graph.nodes[animals[index_0]]['animals'] + graph.nodes[animals[index_1]]['animals']
-        graph.add_node(node_name, animals=node_animals )
 
         edge_weight = matrix[index_0][index_1] / 2
-        graph.add_edge(animals[index_0], node_name, weight=edge_weight)
-        graph.add_edge(animals[index_1], node_name, weight=edge_weight)
+
+        node_animals = graph.nodes[animals[index_0]]['animals'] + graph.nodes[animals[index_1]]['animals']
+        graph.add_node(node_name, animals=node_animals, edge_weight_before=edge_weight )
+
+        edge_weight_0 = edge_weight - graph.nodes[animals[index_0]]['edge_weight_before']
+        graph.add_edge(animals[index_0], node_name, weight=edge_weight_0)
+
+        edge_weight_1 = edge_weight - graph.nodes[animals[index_1]]['edge_weight_before']
+        graph.add_edge(animals[index_1], node_name, weight=edge_weight_1)
 
         for column in range(matrix.shape[1]):
 
@@ -138,6 +143,9 @@ if __name__ == '__main__':
     pos = _graph_pos(graph)
     nx.draw(graph, pos=pos, with_labels=True, node_color='w', font_size=10, linewidths=2)
     ax = plt.gca()  # to get the current axis
+
+    labels = nx.get_edge_attributes(graph, 'weight')
+    nx.draw_networkx_edge_labels(graph, pos=pos, edge_labels=labels)
 
     x_min_name = min(pos, key=lambda x: pos[x][0])
     x_min = pos[x_min_name][0] - len(x_min_name) * c_width / 2
