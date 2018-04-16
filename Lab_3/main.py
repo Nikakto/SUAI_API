@@ -1,4 +1,3 @@
-from Lab_1.TransformationMatrix import TransformationMatrix
 from Lab_3.dna import DNA
 
 import matplotlib.pyplot as plt
@@ -7,6 +6,26 @@ import numpy as np
 
 c_width = 5
 y_height = 10
+
+
+def distance(a, b):
+    "Calculates the Levenshtein distance between a and b."
+    n, m = len(a), len(b)
+    if n > m:
+        # Make sure n <= m, to use O(min(n,m)) space
+        a, b = b, a
+        n, m = m, n
+
+    current_row = range(n+1) # Keep current and previous row, not entire matrix
+    for i in range(1, m+1):
+        previous_row, current_row = current_row, [i]+[0]*n
+        for j in range(1,n+1):
+            add, delete, change = previous_row[j]+1, current_row[j-1]+1, previous_row[j-1]
+            if a[j-1] != b[i-1]:
+                change += 1
+            current_row[j] = min(add, delete, change)
+
+    return current_row[n]
 
 
 def _graph_pos(graph):
@@ -69,11 +88,8 @@ if __name__ == '__main__':
             for dna_code in other_animal.keys():
                 print(dna_code)
 
-                matrix = TransformationMatrix(animal[dna_code].replace('-', ''), other_animal[dna_code].replace('-', ''))
-                matrix.balance_top_down(gap=1)
-                aligment = matrix.get_aligment()
-
-                total_aligment += aligment.count('S') + aligment.count('R') + aligment.count('I')
+                aligment = distance(animal[dna_code].replace('-', ''), other_animal[dna_code].replace('-', '') )
+                total_aligment += aligment
 
             if animal_name not in aligments.keys():
                 aligments[animal_name] = {}
